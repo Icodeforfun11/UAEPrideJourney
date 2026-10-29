@@ -7,7 +7,7 @@ on:
 jobs:
   ios:
     name: iOS (.ipa for Sideloadly)
-    runs-on: macos-15
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Unpack project
