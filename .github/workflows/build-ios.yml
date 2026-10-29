@@ -1,13 +1,19 @@
-name: Build apps
- 
+name: Build iOS app
+
 on:
   push:
   workflow_dispatch:
- 
+
+# Only one build at a time: a new save cancels older waiting builds.
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
 jobs:
   ios:
     name: iOS (.ipa for Sideloadly)
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - name: Unpack project
@@ -27,6 +33,3 @@ jobs:
         with:
           name: UAEPrideJourney-iOS
           path: out/UAEPrideJourney.ipa
- 
- 
- 

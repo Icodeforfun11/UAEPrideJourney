@@ -1,36 +1,35 @@
-# This is a basic workflow to help you get started with Actions
+name: Build iOS app
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "main" branch
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+# Only one build at a time: a new save cancels older waiting builds.
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
-    runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
+  ios:
+    name: iOS (.ipa for Sideloadly)
+    runs-on: macos-latest
+    timeout-minutes: 60
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
-
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
-
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Unpack project
+        run: unzip -oq project-files.zip
+      - name: Build the app (unsigned, Sideloadly signs it)
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          xcodebuild -project ios/UAEPrideJourney.xcodeproj -target UAEPrideJourney \
+            -configuration Release -sdk iphoneos \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+      - name: Package as .ipa
+        run: |
+          APP="ios/build/Release-iphoneos/UAEPrideJourney.app"
+          test -f "$APP/www/index.html"
+          mkdir -p out/Payload && cp -R "$APP" out/Payload/
+          cd out && zip -qry UAEPrideJourney.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: UAEPrideJourney-iOS
+          path: out/UAEPrideJourney.ipa
